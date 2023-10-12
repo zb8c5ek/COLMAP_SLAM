@@ -8,7 +8,7 @@ END = 100000000  # max number of images to process
 SKIP = 0 # 5000
 
 def run_simulator(
-    input_dir, imgs, output_dir="./imgs", ext="jpg", step=1, sleep=0.1, equalize=False, n_camera=1,
+    input_dir, imgs, output_dir="./imgs", ext="png", step=1, sleep=0.1, equalize=False, n_camera=1,
 ):
     print(len(imgs))
     for i in range(len(imgs)):
@@ -46,13 +46,16 @@ if __name__ == "__main__":
     config = configparser.ConfigParser()
     config.read("config.ini", encoding="utf-8")
     input_dir = Path(config["DEFAULT"]["SIMULATOR_IMG_DIR"])
-    output_dir = config["DEFAULT"]["IMGS_FROM_SERVER"]
+    output_dir = config["DEFAULT"]["OUTPUT_IMGS_DIR"]
     ext = config["DEFAULT"]["IMG_FORMAT"]
     step = int(config["DEFAULT"]["STEP"])
     sleep = float(config["DEFAULT"]["SIMULATOR_SLEEP_TIME"])
     equalize = config["DEFAULT"].getboolean("EQUALIZE")
     n_camera = int(config["CALIBRATION"]["N_CAMERAS"])
-
+    from pathlib import Path
+    dp_out = Path(output_dir)
+    if not dp_out.exists():
+        dp_out.mkdir(exist_ok=True, parents=True)
     path_to_kfrms_cam0 = Path(input_dir / "cam0/data")
     if not path_to_kfrms_cam0.exists():
         print(

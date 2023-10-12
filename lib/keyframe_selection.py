@@ -10,6 +10,7 @@ from typing import List, Union
 
 import cv2
 import numpy as np
+import torch
 from easydict import EasyDict as edict
 
 from lib import utils
@@ -165,8 +166,8 @@ class KeyFrameSelector:
             self.desc2 = all_descriptors[img2.stem]
 
         elif self.local_feature == "KeyNetAffNetHardNet":
-
-            all_keypoints, all_descriptors, lafs = self.feature_extractor.KeyNetAffNetHardNet([img1, img2])
+            with torch.no_grad():
+                all_keypoints, all_descriptors, lafs = self.feature_extractor.KeyNetAffNetHardNet([img1, img2])
             self.kpts1 = all_keypoints[img1.stem]
             self.kpts2 = all_keypoints[img2.stem]
             self.desc1 = all_descriptors[img1.stem]

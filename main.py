@@ -1,5 +1,9 @@
 import logging
 import os
+
+# import os
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+
 import pickle
 import shutil
 import subprocess
@@ -7,7 +11,7 @@ import time
 import glob
 import cv2
 import numpy as np
-import pydegensac
+# import pydegensac
 from pyquaternion import Quaternion
 
 from lib import (
@@ -48,7 +52,7 @@ logger = logging.getLogger()
 # Inizialize COLMAP SLAM problem
 init = utils.Inizialization(CFG_FILE)
 cfg = init.inizialize()
-cfg.PLOT_TRJECTORY = False # Please keep PLOT_TRAJECTORY = False
+cfg.PLOT_TRJECTORY = False  # Please keep PLOT_TRAJECTORY = False
 # It is used to plot an additional trajectory (matplotlib) but for now shows rarely a bug (multiple plots).
 # In any case the plot from opencv will show
 
@@ -81,11 +85,11 @@ keyframe_selector = KeyFrameSelector(
     last_keyframe_delta=delta,
     keyframes_dir=cfg.KF_DIR_BATCH / "cam0",
     kfs_method=cfg.KFS_METHOD,
-    geometric_verification="pydegensac",
+    geometric_verification="ransac",
     local_feature=cfg.KFS_LOCAL_FEATURE,
     local_feature_cfg=kf_selection_detecor_config,
     n_features=cfg.KFS_N_FEATURES,
-    realtime_viz=True,
+    realtime_viz=False,
     viz_res_path=SNAPSHOT_DIR,
     innovation_threshold_pix=cfg.INNOVATION_THRESH_PIX,
     min_matches=cfg.MIN_MATCHES,
@@ -117,14 +121,14 @@ if cfg.USE_EXTERNAL_CAM_COORD == True:
         for line in lines[2:]:
             id, x, y, z, _ = line.split(" ", 4)
             camera_coord_other_sensors[id] = (x, y, z)
-
+W
 # Stream of input data
 if cfg.USE_SERVER == True:
     stream_proc = subprocess.Popen([cfg.LAUNCH_SERVER_PATH])
 else:
     stream_proc = subprocess.Popen(["python", "./simulator.py"])
 
-#stream_proc = subprocess.Popen(["python", "./lib/webcam.py"])
+# stream_proc = subprocess.Popen(["python", "./lib/webcam.py"])
 
 # Set-up plotq
 # create_plot()
@@ -133,7 +137,6 @@ if cfg.PLOT_TRJECTORY:
 
 # Initialize COLMAP API
 colmap = ColmapAPI(str(cfg.COLMAP_EXE_PATH))
-
 
 # MAIN LOOP
 timer_global = utils.AverageTimer(logger=logger)
@@ -150,15 +153,14 @@ while True:
         continue
     n_imgs_old = n_imgs
 
-
     ## If using the simulator, check if process is still alive, otherwise quit
-    #if cfg.USE_SERVER == False:
+    # if cfg.USE_SERVER == False:
     #    if stream_proc.poll() is not None:
     #        logging.info("Simulator completed.")
     #        if cfg.PLOT_TRJECTORY:
     #            plot_proc.kill()
     #        break
-    #else:
+    # else:
     #    # Make exit condition when using server
     #    pass
 
@@ -169,7 +171,7 @@ while True:
     if len(imgs) < 1:
         continue
 
-    #if len(imgs) < 2:
+    # if len(imgs) < 2:
     if len(keyframes_list.keyframes) == 0:
         # Set first frame as keyframe
         img0 = imgs[pointer]
@@ -236,11 +238,12 @@ while True:
                     keyframe_obj = keyframes_list.get_keyframe_by_image_name(img)
                     kfm_batch_frm_name.append(keyframe_obj._keyframe_name)
                     with open('keyframes.txt', 'a') as kfm_imgs:
-                        kfm_imgs.write(f"{keyframe_obj._image_name},{cfg.KF_DIR_BATCH}/cam0/{keyframe_obj._keyframe_name}\n")
+                        kfm_imgs.write(
+                            f"{keyframe_obj._image_name},{cfg.KF_DIR_BATCH}/cam0/{keyframe_obj._keyframe_name}\n")
 
                 processed_imgs.append(img)
                 processed += 1
-        
+
         else:
             if len(keyframes_list.keyframes) > cfg.NOT_ORIENTED_KFMS:
                 for i in range(1, len(keyframes_list.keyframes)):
@@ -249,8 +252,8 @@ while True:
                         break
             else:
                 last_oriented_kfrm = keyframes_list.keyframes[-1]
-    
-            #last_kfrm = keyframes_list.keyframes[-1]
+
+            # last_kfrm = keyframes_list.keyframes[-1]
             img1 = last_oriented_kfrm._image_name
             img2 = imgs[-1]
             try:
@@ -258,15 +261,14 @@ while True:
             except:
                 logger.info('image not read')
                 continue
-            
-            #if img not in processed_imgs and c == 0:
+
+            # if img not in processed_imgs and c == 0:
             #    processed_imgs.append(img)
             #    processed += 1
             #    continue
-            #if img in processed_imgs or processed >= cfg.MAX_IMG_BATCH_SIZE:
+            # if img in processed_imgs or processed >= cfg.MAX_IMG_BATCH_SIZE:
             #    continue
-    
-    
+
             logger.info(f"\nProcessing image pair ({img1}, {img2})")
             logger.info(f"pointer {pointer} c {c}")
             old_n_keyframes = len(os.listdir(cfg.KF_DIR_BATCH / "cam0"))
@@ -276,7 +278,7 @@ while True:
                 delta,
                 kfs_time,
             ) = keyframe_selector.run(img1, img2, SEQUENTIAL_OVERLAP)
-    
+
             # Set if new keyframes are added
             new_n_keyframes = len(os.listdir(cfg.KF_DIR_BATCH / "cam0"))
             if new_n_keyframes - old_n_keyframes > 0:
@@ -285,10 +287,10 @@ while True:
                 keyframe_obj = keyframes_list.get_keyframe_by_image_name(img2)
                 kfm_batch_frm_name.append(keyframe_obj._keyframe_name)
                 with open('keyframes.txt', 'a') as kfm_imgs:
-                    kfm_imgs.write(f"{keyframe_obj._image_name},{cfg.KF_DIR_BATCH}/cam0/{keyframe_obj._keyframe_name}\n")
-            #processed_imgs.append(img2)
-            #processed += 1
-    
+                    kfm_imgs.write(
+                        f"{keyframe_obj._image_name},{cfg.KF_DIR_BATCH}/cam0/{keyframe_obj._keyframe_name}\n")
+            # processed_imgs.append(img2)
+            # processed += 1
 
     # INCREMENTAL RECONSTRUCTION
     kfrms = os.listdir(cfg.KF_DIR_BATCH / "cam0")
@@ -305,9 +307,11 @@ while True:
 
         logger.info("Feature extraction")
         if cfg.LOCAL_FEAT_LOCAL_FEATURE != "RootSIFT":
-            keypoints, descriptors, laf = local_feat_extractor.run(cfg.DATABASE, cfg.KF_DIR_BATCH, cfg.IMG_FORMAT, keypoints, descriptors, laf, kfm_batch_frm_name)
+            keypoints, descriptors, laf = local_feat_extractor.run(cfg.DATABASE, cfg.KF_DIR_BATCH, cfg.IMG_FORMAT,
+                                                                   keypoints, descriptors, laf, kfm_batch_frm_name)
             if cfg.LOCAL_FEAT2_USE_ADDITIONAL_FEATURES == True:
-                keypoints, descriptors, laf = local_feat_extractor2.run(cfg.DATABASE, cfg.KF_DIR_BATCH, cfg.IMG_FORMAT, keypoints, descriptors, laf, kfm_batch_frm_name)
+                keypoints, descriptors, laf = local_feat_extractor2.run(cfg.DATABASE, cfg.KF_DIR_BATCH, cfg.IMG_FORMAT,
+                                                                        keypoints, descriptors, laf, kfm_batch_frm_name)
 
         # Aggiungere LAF per RootSIFT
         elif cfg.LOCAL_FEAT_LOCAL_FEATURE == "RootSIFT":
@@ -317,7 +321,7 @@ while True:
                 first_loop=first_colmap_loop,
                 max_n_features=cfg.LOCAL_FEAT_N_FEATURES,
             )
-        
+
         cameras.AssignCameras(cfg.DATABASE, len(cfg.CAM))
 
         timer.update("FEATURE EXTRACTION")
@@ -340,7 +344,7 @@ while True:
             )
 
             # Plot adjacency matrix for debug
-            #matcher.PlotAdjacencyMatrix(adjacency_matrix)
+            # matcher.PlotAdjacencyMatrix(adjacency_matrix)
             kpoints, des, images = import_local_features.ImportLocalFeature(
                 cfg.DATABASE
             )
@@ -351,9 +355,11 @@ while True:
                 for key in keypoints:
                     laf[key] = None
                 if cfg.LOCAL_FEAT2_USE_ADDITIONAL_FEATURES == True:
-                    keypoints, descriptors, laf = local_feat_extractor2.run(cfg.DATABASE, cfg.KF_DIR_BATCH, cfg.IMG_FORMAT, keypoints, descriptors, laf, kfm_batch_frm_name)
+                    keypoints, descriptors, laf = local_feat_extractor2.run(cfg.DATABASE, cfg.KF_DIR_BATCH,
+                                                                            cfg.IMG_FORMAT, keypoints, descriptors, laf,
+                                                                            kfm_batch_frm_name)
 
-                #for key in keypoints:
+                # for key in keypoints:
                 #    keypoints[key] = np.vstack((keypoints[key][:cfg.LOCAL_FEAT_N_FEATURES,:], keypoints2[key][:cfg.LOCAL_FEAT_N_FEATURES,:]))
                 #    descriptors[key] = np.vstack((descriptors[key][:cfg.LOCAL_FEAT_N_FEATURES,:128], descriptors2[key][:cfg.LOCAL_FEAT_N_FEATURES,:128]))
 
@@ -367,13 +373,12 @@ while True:
                     kfm2_name = keyframes_list.get_keyframe_by_id(l)._keyframe_name
                     i = inverted_dict[f"cam0/{kfm2_name}"]
                     j = inverted_dict[f"cam0/{kfm1_name}"]
-                    ij.append((i-1, j-1))
+                    ij.append((i - 1, j - 1))
 
                     # Matching between different cameras at the same epoch
                     for c in range(1, cfg.N_CAMERAS):
                         i = inverted_dict[f"cam{c}/{kfm1_name}"]
-                        ij.append((i-1, j-1))
-
+                        ij.append((i - 1, j - 1))
 
             if cfg.LOCAL_FEAT_LOCAL_FEATURE == "LoFTR":
                 matcher.LoFTR(cfg.KF_DIR_BATCH, images, ij, cfg.DATABASE)
@@ -384,23 +389,24 @@ while True:
                     im2 = images[i + 1]
 
                     if cfg.LOCAL_FEAT_LOCAL_FEATURE == "SuperGlue":
-                        kpts1, kpts2, matches2 = matcher.SuperGlue(cfg.KF_DIR_BATCH, im1, im2, local_feat_extractor.detector_and_descriptor.matcher)
-                        kpts1 = np.hstack((kpts1, np.zeros((kpts1.shape[0],4))))
-                        kpts2 = np.hstack((kpts2, np.zeros((kpts2.shape[0],4))))
+                        kpts1, kpts2, matches2 = matcher.SuperGlue(cfg.KF_DIR_BATCH, im1, im2,
+                                                                   local_feat_extractor.detector_and_descriptor.matcher)
+                        kpts1 = np.hstack((kpts1, np.zeros((kpts1.shape[0], 4))))
+                        kpts2 = np.hstack((kpts2, np.zeros((kpts2.shape[0], 4))))
                         matches1 = np.arange(len(matches2))
                         mask = matches2 != -1
                         matches1 = matches1[mask]
                         matches2 = matches2[mask]
-                        matches_matrix = np.hstack((matches1.reshape(-1,1), matches2.reshape(-1,1)))
+                        matches_matrix = np.hstack((matches1.reshape(-1, 1), matches2.reshape(-1, 1)))
 
                         if matches_matrix.shape[0] < cfg.LOCAL_FEAT_MIN_MATCHES:
                             continue
-                        
+
                         db = db_colmap.COLMAPDatabase.connect(cfg.DATABASE)
                         keypoints = dict(
-                                        (image_id, db_colmap.blob_to_array(data, np.float32, (-1, 1)))
-                                        for image_id, data in db.execute(
-                                            "SELECT image_id, data FROM keypoints"))
+                            (image_id, db_colmap.blob_to_array(data, np.float32, (-1, 1)))
+                            for image_id, data in db.execute(
+                                "SELECT image_id, data FROM keypoints"))
 
                         if int(j + 1) not in keypoints.keys():
                             db.add_keypoints(int(j + 1), kpts1)
@@ -472,8 +478,8 @@ while True:
         #    colmap.SequentialMatcher(database_path=cfg.DATABASE, loop_closure='0', overlap=str(SEQUENTIAL_OVERLAP), vocab_tree='')
 
         elif (
-            cfg.LOOP_CLOSURE_DETECTION == True
-            and cfg.LOCAL_FEAT_LOCAL_FEATURE == "RootSIFT"
+                cfg.LOOP_CLOSURE_DETECTION == True
+                and cfg.LOCAL_FEAT_LOCAL_FEATURE == "RootSIFT"
         ):
             print("Joining this feature, please contact the author..\nQuit")
             quit()
@@ -501,7 +507,7 @@ while True:
             output_path=cfg.OUT_DIR_BATCH,
             first_loop=first_colmap_loop,
         )
-        
+
         if not os.path.exists(f"{cfg.OUT_DIR_BATCH}/0"):
             print("Failed Mapper. Reinitializing..")
             cfg = init.new_batch_solution()
@@ -520,9 +526,9 @@ while True:
             )
 
             # Setup logging level
-            #LOG_LEVEL = logging.INFO
-            #utils.Inizialization.setup_logger(LOG_LEVEL)
-            #logger = logging.getLogger("ColmapSLAM")
+            # LOG_LEVEL = logging.INFO
+            # utils.Inizialization.setup_logger(LOG_LEVEL)
+            # logger = logging.getLogger("ColmapSLAM")
 
             # Initialize variables
             SEQUENTIAL_OVERLAP = cfg.INITIAL_SEQUENTIAL_OVERLAP
@@ -544,7 +550,7 @@ while True:
                 last_keyframe_delta=delta,
                 keyframes_dir=cfg.KF_DIR_BATCH / "cam0",
                 kfs_method=cfg.KFS_METHOD,
-                geometric_verification="pydegensac",
+                geometric_verification="ransac",
                 local_feature=cfg.KFS_LOCAL_FEATURE,
                 local_feature_cfg=kf_selection_detecor_config,
                 n_features=cfg.KFS_N_FEATURES,
@@ -559,7 +565,6 @@ while True:
             )
 
             continue
-
 
         timer.update("MAPPER")
 
@@ -594,36 +599,36 @@ while True:
         # Keep track of sucessfully oriented frames in the current kfm_batch
         oriented_kfs_len = 0
 
-        for keyframe in kfm_batch: #for keyframe in keyframes_list.keyframes # for image in kfm_batch
-            #if "cam0/" + keyframe.keyframe_name in list(oriented_dict.keys()):
+        for keyframe in kfm_batch:  # for keyframe in keyframes_list.keyframes # for image in kfm_batch
+            # if "cam0/" + keyframe.keyframe_name in list(oriented_dict.keys()):
             print('keyframe', keyframe)
             k = keyframes_list.get_keyframe_by_image_name(Path("imgs/cam0/" + keyframe))
-            if k.keyframe_name ==  None:
+            if k.keyframe_name == None:
                 print('kfm_batch', kfm_batch)
             if "cam0/" + k.keyframe_name in list(oriented_dict.keys()):
                 k.set_oriented()
                 oriented_kfs_len += 1
 
-                #for c in range(1, cfg.N_CAMERAS):
+                # for c in range(1, cfg.N_CAMERAS):
                 #    if f"cam{c}/" + keyframe.keyframe_name in list(oriented_dict.keys()):
                 #        keyframe.slave_cameras[c] = oriented_dict[f"cam{c}/" + keyframe.keyframe_name]
-     
+
         ## Define new reference img (pointer)
-        #print(list(oriented_dict.keys()))
+        # print(list(oriented_dict.keys()))
         ##print(list(oriented_dict.keys()).glob(f"cam0/*.{cfg.IMG_FORMAT}"))
-        #lista = list(oriented_dict.keys())
+        # lista = list(oriented_dict.keys())
         ##matching_files = [file for file in lista if glob.fnmatch(file, "cam0/*")]
         ##matching_files = [file for file in lista if any(glob.glob("cam0/*.txt") == file)]
-        #cam0_files = [item for item in lista if glob.fnmatch.fnmatch(item, 'cam0/*')]
-        #print(cam0_files)
-        #quit()
-        #last_oriented_keyframe = np.max(list(oriented_dict.keys()))
-        #keyframe_obj = keyframes_list.get_keyframe_by_id(last_oriented_keyframe)
-        #n_keyframes = len(os.listdir(cfg.KF_DIR_BATCH / "cam0"))
-        #last_keyframe = keyframes_list.get_keyframe_by_id(n_keyframes - 1)
-        #last_keyframe_img_id = last_keyframe.image_id
-        #pointer = keyframe_obj.image_id  # pointer to the last oriented image
-        #delta = last_keyframe_img_id - pointer
+        # cam0_files = [item for item in lista if glob.fnmatch.fnmatch(item, 'cam0/*')]
+        # print(cam0_files)
+        # quit()
+        # last_oriented_keyframe = np.max(list(oriented_dict.keys()))
+        # keyframe_obj = keyframes_list.get_keyframe_by_id(last_oriented_keyframe)
+        # n_keyframes = len(os.listdir(cfg.KF_DIR_BATCH / "cam0"))
+        # last_keyframe = keyframes_list.get_keyframe_by_id(n_keyframes - 1)
+        # last_keyframe_img_id = last_keyframe.image_id
+        # pointer = keyframe_obj.image_id  # pointer to the last oriented image
+        # delta = last_keyframe_img_id - pointer
         delta = 0
 
         # Update dynamic window for sequential matching
@@ -631,7 +636,7 @@ while True:
             len_kfm_batch = len(kfm_batch)
             if delta != 0:
                 SEQUENTIAL_OVERLAP = cfg.INITIAL_SEQUENTIAL_OVERLAP + 2 * (
-                    n_keyframes - last_oriented_keyframe
+                        n_keyframes - last_oriented_keyframe
                 )
                 if SEQUENTIAL_OVERLAP > MAX_SEQUENTIAL_OVERLAP:
                     SEQUENTIAL_OVERLAP = MAX_SEQUENTIAL_OVERLAP
@@ -642,8 +647,8 @@ while True:
             len_kfm_batch = len(kfm_batch)
             last_not_oriented_kfrms = 0
             for i in range(len(keyframes_list.keyframes)):
-                #print('len(keyframes_list.keyframes)-i', len(keyframes_list.keyframes)-i-1)
-                k = keyframes_list.keyframes[len(keyframes_list.keyframes)-i-1]
+                # print('len(keyframes_list.keyframes)-i', len(keyframes_list.keyframes)-i-1)
+                k = keyframes_list.keyframes[len(keyframes_list.keyframes) - i - 1]
                 if k._oriented == False:
                     last_not_oriented_kfrms += 1
                 else:
@@ -657,15 +662,14 @@ while True:
                 elif SEQUENTIAL_OVERLAP > MAX_SEQUENTIAL_OVERLAP:
                     SEQUENTIAL_OVERLAP = MAX_SEQUENTIAL_OVERLAP
             else:
-                SEQUENTIAL_OVERLAP = cfg.INITIAL_SEQUENTIAL_OVERLAP            
+                SEQUENTIAL_OVERLAP = cfg.INITIAL_SEQUENTIAL_OVERLAP
 
-
-        ## Report SLAM solution in the reference system of the first image
+                ## Report SLAM solution in the reference system of the first image
         ref_img_id = list(oriented_dict.keys())[0]
-        #keyframe_obj = keyframes_list.get_keyframe_by_id(ref_img_id)
-        #keyframe_obj.slamX = 0.0
-        #keyframe_obj.slamY = 0.0
-        #keyframe_obj.slamZ = 0.0
+        # keyframe_obj = keyframes_list.get_keyframe_by_id(ref_img_id)
+        # keyframe_obj.slamX = 0.0
+        # keyframe_obj.slamY = 0.0
+        # keyframe_obj.slamZ = 0.0
         q0, t0 = oriented_dict[ref_img_id][1]
         t0 = t0.reshape((3, 1))
         q0_quat = Quaternion(q0)
@@ -675,7 +679,7 @@ while True:
             ti = ti.reshape((3, 1))
             qi_quat = Quaternion(qi)
             ti_in_q0_ref = (
-                -np.dot((q0_quat * qi_quat.inverse).rotation_matrix, ti) + t0
+                    -np.dot((q0_quat * qi_quat.inverse).rotation_matrix, ti) + t0
             )
             keyframe_obj = keyframes_list.get_keyframe_by_name(keyframe_name)
             camera = int(cam[3:])
@@ -685,7 +689,6 @@ while True:
                 keyframe_obj.slamZ = ti_in_q0_ref[2, 0]
             else:
                 keyframe_obj.slave_cameras_POS[camera] = (ti_in_q0_ref[0, 0], ti_in_q0_ref[1, 0], ti_in_q0_ref[2, 0])
-            
 
         oriented_dict_cam0 = {}
         for key in oriented_dict:
@@ -699,14 +702,14 @@ while True:
         oriented_dict_list = list(oriented_dict.keys())
         oriented_dict_list.sort()
         total_kfs_number = len(kfrms)
-        
-        #oriented_kfs_len = len(oriented_dict_list)
+
+        # oriented_kfs_len = len(oriented_dict_list)
         ori_ratio = oriented_kfs_len / total_kfs_number
 
         logger.info(
             f"Total keyframes: {total_kfs_number}; Oriented keyframes: {oriented_kfs_len}; Ratio: {ori_ratio}"
         )
-  
+
         # Set scale factor
         if cfg.N_CAMERAS > 1:
             baselines = []
@@ -719,18 +722,18 @@ while True:
                     x1 = keyframe_obj.slave_cameras_POS[1][0]
                     y1 = keyframe_obj.slave_cameras_POS[1][1]
                     z1 = keyframe_obj.slave_cameras_POS[1][2]
-                    d = ((x0-x1)**2 + (y0-y1)**2 + (z0-z1)**2)**0.5
+                    d = ((x0 - x1) ** 2 + (y0 - y1) ** 2 + (z0 - z1) ** 2) ** 0.5
                     baselines.append(d)
                 except:
                     pass
-            #print(baselines)
-            #print(np.mean(baselines))
+            # print(baselines)
+            # print(np.mean(baselines))
             scale = cfg.BASELINE_CAM0_CAM1 / np.mean(baselines)
-            print("mean", np.mean(np.array(baselines)*scale))
-            print("std", np.std(np.array(baselines)*scale))
+            print("mean", np.mean(np.array(baselines) * scale))
+            print("std", np.std(np.array(baselines) * scale))
         else:
             scale = 1
-        
+
         # Apply scale factor
         with open("./scaled_keyframes1.txt", 'w') as out1, open("./scaled_keyframes2.txt", 'w') as out2:
             for keyframe_id in oriented_dict_list:
@@ -783,11 +786,11 @@ while True:
 
         # REINITIALIZE SLAM
         if (
-            #ori_ratio < cfg.MIN_ORIENTED_RATIO
-            #or total_kfs_number - oriented_kfs_len > cfg.NOT_ORIENTED_KFMS
-            #or oriented_kfs_len < cfg.NOT_ORIENTED_KFMS
-            total_kfs_number - oriented_kfrms > 1 * cfg.NOT_ORIENTED_KFMS 
-            or len_kfm_batch - oriented_kfs_len > cfg.NOT_ORIENTED_KFMS
+                # ori_ratio < cfg.MIN_ORIENTED_RATIO
+                # or total_kfs_number - oriented_kfs_len > cfg.NOT_ORIENTED_KFMS
+                # or oriented_kfs_len < cfg.NOT_ORIENTED_KFMS
+                total_kfs_number - oriented_kfrms > 1 * cfg.NOT_ORIENTED_KFMS
+                or len_kfm_batch - oriented_kfs_len > cfg.NOT_ORIENTED_KFMS
         ):
             logger.info(
                 f"Total keyframes in the batch: {len_kfm_batch}; Oriented keyframes in the batch: {oriented_kfs_len}; Ratio: {ori_ratio}"
@@ -811,9 +814,9 @@ while True:
             )
 
             # Setup logging level
-            #LOG_LEVEL = logging.INFO
-            #utils.Inizialization.setup_logger(LOG_LEVEL)
-            #logger = logging.getLogger("ColmapSLAM")
+            # LOG_LEVEL = logging.INFO
+            # utils.Inizialization.setup_logger(LOG_LEVEL)
+            # logger = logging.getLogger("ColmapSLAM")
 
             # Initialize variables
             print("\n\nREINITIALIZE ..")
@@ -853,8 +856,6 @@ while True:
 
     timer_global.update(f"{len(kfrms)}")
     time.sleep(cfg.SLEEP_TIME)
-
-
 
 if len(imgs) == 0:
     logger.info('No frames are detected. Check paths in config.ini')
