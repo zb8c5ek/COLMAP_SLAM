@@ -32,15 +32,15 @@ from pathlib import Path
 from easydict import EasyDict as edict
 
 # Configuration file
-CFG_FILE = "config.ini"
+CFG_FILE = "config_4_run_tot_2000.ini"
 
 # Setup logging level. Options are [INFO, WARNING, ERROR, CRITICAL]
 LOG_LEVEL = logging.INFO
 # utils.Inizialization.setup_logger(LOG_LEVEL)
 # logger = logging.getLogger("ColmapSLAM")
-if os.path.exists('debug.log'):
-    os.remove('debug.log')
-logging.basicConfig(filename='debug.log', level=logging.DEBUG,
+if os.path.exists('../debug.log'):
+    os.remove('../debug.log')
+logging.basicConfig(filename='../debug.log', level=logging.DEBUG,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 console_handler = logging.StreamHandler()
 console_handler.setLevel(logging.DEBUG)  # Set the desired level for console output
@@ -121,7 +121,7 @@ if cfg.USE_EXTERNAL_CAM_COORD == True:
         for line in lines[2:]:
             id, x, y, z, _ = line.split(" ", 4)
             camera_coord_other_sensors[id] = (x, y, z)
-W
+
 # Stream of input data
 if cfg.USE_SERVER == True:
     stream_proc = subprocess.Popen([cfg.LAUNCH_SERVER_PATH])
@@ -140,7 +140,7 @@ colmap = ColmapAPI(str(cfg.COLMAP_EXE_PATH))
 
 # MAIN LOOP
 timer_global = utils.AverageTimer(logger=logger)
-imgs = sorted((cfg.IMGS_FROM_SERVER / "cam0").glob(f"*.{cfg.IMG_FORMAT}"))
+imgs = sorted((cfg.IMGS_FROM_SERVER / "cam0" / "data").glob(f"*.{cfg.IMG_FORMAT}"))
 n_imgs = len(imgs)
 n_imgs_old = n_imgs
 while True:

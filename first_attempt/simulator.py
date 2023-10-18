@@ -28,6 +28,7 @@ def run_simulator(
             print(f"processing {i}-th img ({i}/{len(imgs)})")
 
         for c in reversed(range(n_camera)):
+
             im_name = imgs[i].name
             #im_name = im_name[8:] # for ant3d
             im = Image.open(input_dir / f"cam{c}/data" / im_name)
@@ -36,6 +37,11 @@ def run_simulator(
             if equalize == True:
                 rgb_im = ImageOps.equalize(rgb_im)
             #rgb_im.thumbnail((960, 600), Image.Resampling.LANCZOS) # for ant3d
+
+            # make sure the output folder exist
+            dp_cam = Path(output_dir) / f"cam{c}"
+            dp_cam.mkdir(exist_ok=True, parents=True)
+            # ---------------------------------
             rgb_im.save(Path(output_dir) / f"cam{c}" / f"{Path(im_name).stem}.{ext}")
             time.sleep(sleep)
 
@@ -44,7 +50,7 @@ def run_simulator(
 
 if __name__ == "__main__":
     config = configparser.ConfigParser()
-    config.read("config.ini", encoding="utf-8")
+    config.read("config_4_run_tot_2000.ini", encoding="utf-8")
     input_dir = Path(config["DEFAULT"]["SIMULATOR_IMG_DIR"])
     output_dir = config["DEFAULT"]["OUTPUT_IMGS_DIR"]
     ext = config["DEFAULT"]["IMG_FORMAT"]
@@ -56,7 +62,7 @@ if __name__ == "__main__":
     dp_out = Path(output_dir)
     if not dp_out.exists():
         dp_out.mkdir(exist_ok=True, parents=True)
-    path_to_kfrms_cam0 = Path(input_dir / "cam0/data")
+    path_to_kfrms_cam0 = Path(input_dir /"cam0/data")
     if not path_to_kfrms_cam0.exists():
         print(
             '\nERROR: Keyframe directory cam0:', 

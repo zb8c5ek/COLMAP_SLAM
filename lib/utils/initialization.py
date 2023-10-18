@@ -220,8 +220,8 @@ class Inizialization:
         self.cfg.KEYFRAMES_DIR.mkdir()
         self.cfg.OUT_FOLDER.mkdir()
 
-        if self.cfg.IMGS_FROM_SERVER.exists():
-            shutil.rmtree(self.cfg.IMGS_FROM_SERVER)
+        # if self.cfg.IMGS_FROM_SERVER.exists():
+        #     shutil.rmtree(self.cfg.IMGS_FROM_SERVER)
         for c in range(self.cfg.N_CAMERAS):
             camera_subfolder = self.cfg.IMGS_FROM_SERVER / f"cam{c}"
             camera_subfolder.mkdir(parents=True)
